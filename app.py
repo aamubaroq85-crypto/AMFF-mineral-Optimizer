@@ -9,13 +9,15 @@ st.set_page_config(
     page_title="ZF-Matrix Studio v1.0", page_icon="⚛️", layout="wide"
 )
 
+# Sidebar untuk Unggah Berkas Buku Besar (JSON)
+st.sidebar.header("📁 Manajemen Buku Besar")
+uploaded_file = st.sidebar.file_uploader(
+    "Unggah berkas zuhri_registry.json", type=["json"]
+)
 
-# Fungsi untuk memuat berkas Buku Besar (Zuhri Registry)
+
 @st.cache_data
-def load_zuhri_registry():
-  # Pada implementasi nyata, muat dari berkas lokal:
-  # with open("zuhri_registry.json", "r") as f:
-  #     return json.load(f)
+def get_default_registry():
   return {
       "schema_version": "1.0.0-ZF",
       "phi_constant": 1.6180339887,
@@ -54,14 +56,27 @@ def load_zuhri_registry():
   }
 
 
-registry_data = load_zuhri_registry()
+# Logika pembacaan file JSON kustom atau fallback ke bawaan
+if uploaded_file is not None:
+  try:
+    registry_data = json.load(uploaded_file)
+    st.sidebar.success("Buku besar kustom berhasil dimuat!")
+  except Exception as e:
+    st.sidebar.error(f"Gagal membaca berkas JSON: {e}")
+    registry_data = get_default_registry()
+else:
+    registry_data = get_default_registry()
 
-# Header Utama Dasbor
+# Header Utama Dasbor (Sudah Dirapikan)
 st.title("⚛️ ZF-Matrix Studio | Zuhri Formalism DED Dashboard")
+
+phi_val = registry_data.get("phi_constant", 1.6180339887)
+df_val = registry_data.get("fractal_dimension_Df", 2.6180339887)
+
 st.markdown(
-    "**Mode Operasi:** `[Air-Gapped Local Workstation]` | **Golden Ratio"
-    f" ($\\phi$):** `{registry_data['phi_constant']}` | **Dimensi Fraktal ($D_f$):"
-    f"` `{registry_data['fractal_dimension_Df']}`"
+    f"**Mode Operasi:** `Air-Gapped Local Workstation` &nbsp;|&nbsp; "
+    f"**Golden Ratio ($\\phi$):** `{phi_val}` &nbsp;|&nbsp; "
+    f"**Dimensi Fraktal ($D_f$):** `{df_val}`"
 )
 
 # Pembagian Tata Letak Empat Panel via Tabs
@@ -79,14 +94,20 @@ with tab1:
       " artifisial."
   )
 
-  # Data simulasi koordinat atom berbasis phi
-  df_atoms = pd.DataFrame({
-      "Element": ["Fe", "Si", "Ni", "C"],
-      "X": [0.000, 1.618, 2.618, 4.236],
-      "Y": [1.618, 0.000, 3.854, 1.618],
-      "Z": [2.618, 1.260, 5.236, 0.618],
-      "Zeta": [5.2360, 2.6180, 6.8541, 1.6180],
-  })
+  elements_list = registry_data.get("elements_registry", [])
+  if elements_list:
+    symbols = [el.get("symbol", "X") for el in elements_list]
+    zetas = [el.get("zeta_eigen", 1.0) for el in elements_list]
+    phi = phi_val
+    xs = [i * phi for i in range(len(symbols))]
+    ys = [(i + 1) * phi**-1 for i in range(len(symbols))]
+    zs = [el.get("r0_angstrom", 1.0) * phi for el in elements_list]
+  else:
+    symbols, xs, ys, zs, zetas = ["Fe"], [0.0], [1.618], [2.618], [5.236]
+
+  df_atoms = pd.DataFrame(
+      {"Element": symbols, "X": xs, "Y": ys, "Z": zs, "Zeta": zetas}
+  )
 
   fig_3d = go.Figure(
       data=[
@@ -112,7 +133,7 @@ with tab1:
 
 with tab2:
   st.subheader("Matrix Kernel Monitor (M_φ & Eigen Spectra)")
-  elements_df = pd.DataFrame(registry_data["elements_registry"])
+  elements_df = pd.DataFrame(registry_data.get("elements_registry", []))
   st.dataframe(elements_df, use_container_width=True)
   st.info(
       "Penyelesaian matriks linier O(N) menggunakan indeks eigen resonansi"
@@ -126,7 +147,6 @@ with tab3:
       "}{\\mathrm{d}\\tau} = 0$ dan peredaman termal $\\alpha = \\phi^{-2}$."
   )
 
-  # Simulasi kurva entropi geometris S_g melandai ke ekuilibrium
   time_steps = np.linspace(0, 10, 100)
   sg_curve = 0.012 * np.exp(-0.55 * time_steps) + 0.00004 * np.sin(
       2 * np.pi * time_steps
@@ -164,7 +184,9 @@ with tab4:
         value="1,245 W",
         delta="-8.2 W (Kompensasi Alfa)",
     )
-    st.metric(label="Latensi Edge Controller FPGA", value="0.78 ms", delta="OK")
+    st.metric(
+        label="Latensi Edge Controller FPGA", value="0.78 ms", delta="OK"
+    )
     laser_override = st.slider("Modulasi Daya Laser P_φ (Watt)", 800, 2000, 1245)
   with col_b:
     st.code(
