@@ -27,13 +27,15 @@ st.markdown("**Enterprise Decision Support System (DSS) Berbasis Adaptive Minera
 
 # Sidebar for Configuration
 st.sidebar.header("⚙️ Konfigurasi Parameter AMFF")
-k_adaptif = st.sidebar.number_input("Konstanta Adaptif ($K_{\text{adaptif}}$)", value=1.25, step=0.01, format="%.2f")
+k_adaptif = st.sidebar.number_input("Konstanta Adaptif ($K_{\\text{adaptif}}$)", value=1.25, step=0.01, format="%.2f")
 kapasitas_pabrik_tpd = st.sidebar.number_input("Kapasitas Pabrik (Ton/Hari - TPD)", value=5000.0, step=500.0)
 biaya_reagen_per_kg = st.sidebar.number_input("Biaya Reagen ($ / kg)", value=3.50, step=0.10)
 
 st.sidebar.markdown("---")
-st.sidebar.info("Rumus Dasar AMFF:
-$\text{Dosis Optima} = \left(\frac{A}{B}\right) \times K_{\text{adaptif}}$")
+st.sidebar.info("""
+Rumus Dasar AMFF:
+$\\text{Dosis Optima} = \\left(\\frac{A}{B}\\right) \\times K_{\\text{adaptif}}$
+""")
 
 # Main Content Area
 col1, col2 = st.columns(2)
@@ -91,4 +93,3 @@ if st.button("Jalankan Simulasi AMFF"):
         })
     df_sim = pd.DataFrame(data_simulasi)
     st.dataframe(df_sim, use_container_width=True)
-
